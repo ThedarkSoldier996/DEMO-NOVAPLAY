@@ -134,36 +134,74 @@
 </div>
 
 <script>
-/**
- * NOVAPLAY SECURE ENGINE V2
- * All rights reserved.
- */
-(function(_0xabc, _0xdef) {
-    const _0x5142 = function(_0x421) {
-        return atob(_0x421);
-    };
+(function() {
 
-    // Core Engine (Encoded)
-    eval(_0x5142("Y29uc3QgbG9nZ2VyID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2RlYnVnLWxvZycpOwpjb25zdCB2aWRlbyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd2aWRlbycpOwpjb25zdCBmdWxsc2NyZWVuQnRuID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Z1bGxzY3JlZW4tYnRuJyk7CmNvbnN0IHZpZGVvQ29udGFpbmVyID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZGVvLWNvbnRhaW5lcicpOwpmdW5jdGlvbiBsb2cobXNnKSB7IGNvbnN0IGRpdiA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpOyBkaXYudGV4dENvbnRlbnQgPSBgPiAke21zZ31gOyBsb2dnZXIuYXBwZW5kQ2hpbGQoZGl2KTsgbG9nZ2VyLnNrcm9sbFRvcCA9IGxvZ2dlci5zY3JvbGxIZWlnaHQ7IH0="));
+    const logger = document.getElementById('debug-log');
+    const video = document.getElementById('video');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const videoContainer = document.getElementById('video-container');
 
-    /* UI Logic */
-    eval(_0x5142("ZnVsbHNjcmVlbkJ0bi5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsIGFzeW5jIGZ1bmN0aW9uKCkgewogICAgdHJ5IHsKICAgICAgICBpZiAoIWRvY3VtZW50LmZ1bGxzY3JlZW5FbGVtZW50KSB7CiAgICAgICAgICAgIGF3YWl0IHZpZGVvQ29udGFpbmVyLnJlcXVlc3RGdWxsc2NyZWVuKCk7CiAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgYXdhaXQgZG9jdW1lbnQuZXhpdEZ1bGxzY3JlZW4oKTsKICAgICAgICB9CiAgICB9IGNhdGNoIChlcnJvcikgeyBsb2coJ0ZhbGxvIGZ1bGxzY3JlZW4nKTsgfQp9KTs="));
+    function log(msg) {
+        const div = document.createElement('div');
+        div.textContent = `> ${msg}`;
+        logger.appendChild(div);
+        logger.scrollTop = logger.scrollHeight;
+    }
+
+    /* Pantalla completa */
+    fullscreenBtn.addEventListener('click', async function() {
+        try {
+
+            if (!document.fullscreenElement) {
+                await videoContainer.requestFullscreen();
+                fullscreenBtn.textContent = '⛶';
+            } else {
+                await document.exitFullscreen();
+                fullscreenBtn.textContent = '⛶';
+            }
+
+        } catch (error) {
+            log('Error pantalla completa: ' + error.message);
+        }
+    });
+
+    /* Actualizar botón cuando cambia fullscreen */
+    document.addEventListener('fullscreenchange', function() {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = '⛶';
+        } else {
+            fullscreenBtn.textContent = '⛶';
+        }
+    });
 
     async function init() {
-        // Step 1: Database Auth
-        eval(_0x5142("bG9nKCdDb25lY3RhbmRvIGNvbiBCYXNlIGRlIERhdG9zLi4uJyk7"));
+
+        log('Obteniendo Datos desde NOVAPLAY');
+
+        await new Promise(r => setTimeout(r, 800));
 
         try {
-            const res = await fetch(_0x5142("aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg=="));
-            const data = await res.json();
+
+            log('Conectando con Base de Datos...');
+
+            const response = await fetch(
+                "https://bit.ly/45t6TBg?t=" +
+                Date.now()
+            );
+
+            const data = await response.json();
+
+            log('Usuario DEMO - Sesión Autorizada');
+
+            await new Promise(r => setTimeout(r, 500));
+
             let targetUrl = "";
 
             for (const category of data) {
-                // [NATIVE FINDER BLOCK - DO NOT ENCRYPT]
+
                 const channel = category.items.find(
                     ch => ch.name === "TIGO SPORTS 2"
                 );
-                // [END NATIVE FINDER BLOCK]
 
                 if (channel) {
                     targetUrl = channel.url;
@@ -172,49 +210,104 @@
             }
 
             if (!targetUrl) {
-                eval(_0x5142("bG9nKCdFcnJvcjogQ2FuYWwgbm8gZW5jb250cmFkby4nKTs="));
+                log('Error: Canal no encontrado.');
                 return;
             }
 
-            // Step 2: HLS Initialization
-            eval(_0x5142("bG9nKCdDb25leGnDs24gRXN0YWJsZWNpZGEuIC0gQ0FSR0FORE8uLi4nKTs="));
+            log('Conexión Establecida. - CARGANDO...');
+
+            await new Promise(r => setTimeout(r, 300));
 
             if (Hls.isSupported()) {
+
                 const hls = new Hls({
+
                     maxBufferLength: 60,
+                    maxMaxBufferLength: 120,
+                    maxBufferSize: 60 * 1024 * 1024,
                     lowLatencyMode: true,
-                    manifestLoadingMaxRetry: 5
+                    backStep: 0.5,
+                    startLevel: -1,
+                    manifestLoadingMaxRetry: 5,
+                    levelLoadingMaxRetry: 5
+
                 });
 
                 hls.loadSource(targetUrl);
                 hls.attachMedia(video);
 
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play().then(() => {
-                        setTimeout(() => { logger.style.display = 'none'; }, 1000);
-                    });
+
+                    video.play()
+                        .then(() => {
+
+                            setTimeout(() => {
+                                logger.style.display = 'none';
+                            }, 1000);
+
+                        })
+                        .catch(e => {
+                            log('Error Autoplay: ' + e.message);
+                        });
+
                 });
 
-                hls.on(Hls.Events.ERROR, (_0x1, _0x2) => {
-                    if (_0x2.fatal) {
-                        if (_0x2.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-                        else if (_0x2.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-                        else hls.destroy();
+                hls.on(Hls.Events.ERROR, function(event, data) {
+
+                    if (data.fatal) {
+
+                        switch (data.type) {
+
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+
+                                log("Error de Conexión con enlace, reintentando...");
+                                hls.startLoad();
+
+                                break;
+
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+
+                                log("Error de medios, recuperando...");
+                                hls.recoverMediaError();
+
+                                break;
+
+                            default:
+
+                                log("Fallo fatal.");
+                                hls.destroy();
+
+                                break;
+                        }
                     }
                 });
+
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+
                 video.src = targetUrl;
+
                 video.addEventListener('loadedmetadata', () => {
-                    video.play().then(() => { logger.style.display = 'none'; });
+
+                    video.play()
+                        .then(() => {
+                            logger.style.display = 'none';
+                        })
+                        .catch(e => {
+                            log('Error Autoplay: ' + e.message);
+                        });
+
                 });
             }
 
-        } catch (_0x99) {
-            eval(_0x5142("bG9nKCdGQUxMTyBERSBTSVNURU1BJyk7"));
+        } catch (error) {
+
+            log('FALLO: ' + error.message);
+
         }
     }
 
     init();
+
 })();
 </script>
 
