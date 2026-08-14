@@ -6,7 +6,9 @@
 <meta name="referrer" content="no-referrer">
 <title>DEMO - NOVAPLAY</title>
 
-<link rel="icon" type="image/webp" href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp">
+<link rel="icon" type="image/webp"
+href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
 
 <style>
@@ -37,7 +39,6 @@
         outline: none;
     }
 
-    /* Ocultar completamente los controles nativos */
     video::-webkit-media-controls {
         display: none !important;
     }
@@ -66,7 +67,6 @@
         padding: 10px;
     }
 
-    /* Watermark */
     .watermark {
         position: absolute;
         top: 20px;
@@ -78,7 +78,6 @@
         user-select: none;
     }
 
-    /* Botón de pantalla completa */
     #fullscreen-btn {
         position: absolute;
         bottom: 20px;
@@ -122,13 +121,11 @@
         disablepictureinpicture>
     </video>
 
-    <!-- Watermark -->
     <img
         src="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp"
         class="watermark"
         alt="NovaPlay">
 
-    <!-- Único control visible -->
     <button id="fullscreen-btn" title="Pantalla completa">⛶</button>
 
 </div>
@@ -150,28 +147,34 @@
 
     /* Pantalla completa */
     fullscreenBtn.addEventListener('click', async function() {
+
         try {
 
             if (!document.fullscreenElement) {
+
                 await videoContainer.requestFullscreen();
                 fullscreenBtn.textContent = '⛶';
+
             } else {
+
                 await document.exitFullscreen();
                 fullscreenBtn.textContent = '⛶';
+
             }
 
         } catch (error) {
+
             log('Error pantalla completa: ' + error.message);
+
         }
+
     });
 
     /* Actualizar botón cuando cambia fullscreen */
     document.addEventListener('fullscreenchange', function() {
-        if (document.fullscreenElement) {
-            fullscreenBtn.textContent = '⛶';
-        } else {
-            fullscreenBtn.textContent = '⛶';
-        }
+
+        fullscreenBtn.textContent = '⛶';
+
     });
 
     async function init() {
@@ -184,9 +187,17 @@
 
             log('Conectando con Base de Datos...');
 
+            /*
+             * URL de novaplay.json codificada en Base64.
+             * Se reconstruye únicamente cuando se necesita.
+             */
+            const encodedUrl =
+                "aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg==";
+
+            const jsonUrl = atob(encodedUrl);
+
             const response = await fetch(
-                "https://bit.ly/45t6TBg?t=" +
-                Date.now()
+                jsonUrl + "?t=" + Date.now()
             );
 
             const data = await response.json();
@@ -204,14 +215,19 @@
                 );
 
                 if (channel) {
+
                     targetUrl = channel.url;
                     break;
+
                 }
+
             }
 
             if (!targetUrl) {
+
                 log('Error: Canal no encontrado.');
                 return;
+
             }
 
             log('Conexión Establecida. - CARGANDO...');
@@ -242,12 +258,16 @@
                         .then(() => {
 
                             setTimeout(() => {
+
                                 logger.style.display = 'none';
+
                             }, 1000);
 
                         })
                         .catch(e => {
+
                             log('Error Autoplay: ' + e.message);
+
                         });
 
                 });
@@ -260,14 +280,20 @@
 
                             case Hls.ErrorTypes.NETWORK_ERROR:
 
-                                log("Error de Conexión con enlace, reintentando...");
+                                log(
+                                    "Error de Conexión con enlace, reintentando..."
+                                );
+
                                 hls.startLoad();
 
                                 break;
 
                             case Hls.ErrorTypes.MEDIA_ERROR:
 
-                                log("Error de medios, recuperando...");
+                                log(
+                                    "Error de medios, recuperando..."
+                                );
+
                                 hls.recoverMediaError();
 
                                 break;
@@ -275,28 +301,47 @@
                             default:
 
                                 log("Fallo fatal.");
+
                                 hls.destroy();
 
                                 break;
+
                         }
+
                     }
+
                 });
 
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            } else if (
+                video.canPlayType(
+                    'application/vnd.apple.mpegurl'
+                )
+            ) {
 
                 video.src = targetUrl;
 
-                video.addEventListener('loadedmetadata', () => {
+                video.addEventListener(
+                    'loadedmetadata',
+                    () => {
 
-                    video.play()
-                        .then(() => {
-                            logger.style.display = 'none';
-                        })
-                        .catch(e => {
-                            log('Error Autoplay: ' + e.message);
-                        });
+                        video.play()
+                            .then(() => {
 
-                });
+                                logger.style.display = 'none';
+
+                            })
+                            .catch(e => {
+
+                                log(
+                                    'Error Autoplay: ' +
+                                    e.message
+                                );
+
+                            });
+
+                    }
+                );
+
             }
 
         } catch (error) {
@@ -304,6 +349,7 @@
             log('FALLO: ' + error.message);
 
         }
+
     }
 
     init();
