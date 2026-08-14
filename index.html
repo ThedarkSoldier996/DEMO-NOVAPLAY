@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<title>DEMO - NOVAPLAY</title>
+
+<link rel="icon" type="image/webp" href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
+
+    #video-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+        outline: none;
+    }
+
+    /* Ocultar completamente los controles nativos */
+    video::-webkit-media-controls {
+        display: none !important;
+    }
+
+    video::-webkit-media-controls-enclosure {
+        display: none !important;
+    }
+
+    video::-webkit-media-controls-panel {
+        display: none !important;
+    }
+
+    #debug-log {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: rgba(0,0,0,0.8);
+        color: #0f0;
+        font-family: monospace;
+        font-size: 10px;
+        z-index: 9999;
+        max-height: 40%;
+        overflow-y: auto;
+        width: 300px;
+        pointer-events: none;
+        padding: 10px;
+    }
+
+    /* Watermark */
+    .watermark {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 120px;
+        opacity: 0.6;
+        pointer-events: none;
+        z-index: 1000;
+        user-select: none;
+    }
+
+    /* Botón de pantalla completa */
+    #fullscreen-btn {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2000;
+        width: 50px;
+        height: 45px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.65);
+        color: white;
+        font-size: 27px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    #video-container:hover #fullscreen-btn {
+        opacity: 1;
+    }
+
+    #fullscreen-btn:hover {
+        background: rgba(0, 0, 0, 0.85);
+    }
+</style>
+</head>
+
+<body>
+
+<div id="debug-log"></div>
+
+<div id="video-container">
+
+    <video
+        id="video"
+        autoplay
+        playsinline
+        muted
+        controls="false"
+        controlslist="nodownload noplaybackrate"
+        disablepictureinpicture>
+    </video>
+
+    <!-- Watermark -->
+    <img
+        src="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp"
+        class="watermark"
+        alt="NovaPlay">
+
+    <!-- Único control visible -->
+    <button id="fullscreen-btn" title="Pantalla completa">⛶</button>
+
+</div>
+
+<script>
+/**
+ * NOVAPLAY SECURE ENGINE V2
+ * All rights reserved.
+ */
+(function(_0xabc, _0xdef) {
+    const _0x5142 = function(_0x421) {
+        return atob(_0x421);
+    };
+
+    // Core Engine (Encoded)
+    eval(_0x5142("Y29uc3QgbG9nZ2VyID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2RlYnVnLWxvZycpOwpjb25zdCB2aWRlbyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd2aWRlbycpOwpjb25zdCBmdWxsc2NyZWVuQnRuID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Z1bGxzY3JlZW4tYnRuJyk7CmNvbnN0IHZpZGVvQ29udGFpbmVyID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZGVvLWNvbnRhaW5lcicpOwpmdW5jdGlvbiBsb2cobXNnKSB7IGNvbnN0IGRpdiA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpOyBkaXYudGV4dENvbnRlbnQgPSBgPiAke21zZ31gOyBsb2dnZXIuYXBwZW5kQ2hpbGQoZGl2KTsgbG9nZ2VyLnNrcm9sbFRvcCA9IGxvZ2dlci5zY3JvbGxIZWlnaHQ7IH0="));
+
+    /* UI Logic */
+    eval(_0x5142("ZnVsbHNjcmVlbkJ0bi5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsIGFzeW5jIGZ1bmN0aW9uKCkgewogICAgdHJ5IHsKICAgICAgICBpZiAoIWRvY3VtZW50LmZ1bGxzY3JlZW5FbGVtZW50KSB7CiAgICAgICAgICAgIGF3YWl0IHZpZGVvQ29udGFpbmVyLnJlcXVlc3RGdWxsc2NyZWVuKCk7CiAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgYXdhaXQgZG9jdW1lbnQuZXhpdEZ1bGxzY3JlZW4oKTsKICAgICAgICB9CiAgICB9IGNhdGNoIChlcnJvcikgeyBsb2coJ0ZhbGxvIGZ1bGxzY3JlZW4nKTsgfQp9KTs="));
+
+    async function init() {
+        // Step 1: Database Auth
+        eval(_0x5142("bG9nKCdDb25lY3RhbmRvIGNvbiBCYXNlIGRlIERhdG9zLi4uJyk7"));
+
+        try {
+            const res = await fetch(_0x5142("aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg=="));
+            const data = await res.json();
+            let targetUrl = "";
+
+            for (const category of data) {
+                // [NATIVE FINDER BLOCK - DO NOT ENCRYPT]
+                const channel = category.items.find(
+                    ch => ch.name === "TIGO SPORTS 2"
+                );
+                // [END NATIVE FINDER BLOCK]
+
+                if (channel) {
+                    targetUrl = channel.url;
+                    break;
+                }
+            }
+
+            if (!targetUrl) {
+                eval(_0x5142("bG9nKCdFcnJvcjogQ2FuYWwgbm8gZW5jb250cmFkby4nKTs="));
+                return;
+            }
+
+            // Step 2: HLS Initialization
+            eval(_0x5142("bG9nKCdDb25leGnDs24gRXN0YWJsZWNpZGEuIC0gQ0FSR0FORE8uLi4nKTs="));
+
+            if (Hls.isSupported()) {
+                const hls = new Hls({
+                    maxBufferLength: 60,
+                    lowLatencyMode: true,
+                    manifestLoadingMaxRetry: 5
+                });
+
+                hls.loadSource(targetUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().then(() => {
+                        setTimeout(() => { logger.style.display = 'none'; }, 1000);
+                    });
+                });
+
+                hls.on(Hls.Events.ERROR, (_0x1, _0x2) => {
+                    if (_0x2.fatal) {
+                        if (_0x2.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+                        else if (_0x2.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+                        else hls.destroy();
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = targetUrl;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().then(() => { logger.style.display = 'none'; });
+                });
+            }
+
+        } catch (_0x99) {
+            eval(_0x5142("bG9nKCdGQUxMTyBERSBTSVNURU1BJyk7"));
+        }
+    }
+
+    init();
+})();
+</script>
+
+</body>
+</html>
