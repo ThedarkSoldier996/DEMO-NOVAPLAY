@@ -29,6 +29,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         align-items: center;
         justify-content: center;
         position: relative;
+        background: #000;
     }
 
     video {
@@ -38,6 +39,65 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         background: #000;
         outline: none;
     }
+
+    /* =========================
+       PANTALLA EVENTO FINALIZADO
+       ========================= */
+
+    #event-ended {
+        position: absolute;
+        inset: 0;
+        z-index: 5000;
+
+        display: none;
+
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+
+        background: #000;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    #event-ended img {
+        width: 190px;
+        max-width: 45vw;
+        margin-bottom: 35px;
+
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    #event-ended h1 {
+        margin: 0 0 15px 0;
+
+        color: #fff;
+        font-size: clamp(25px, 4vw, 48px);
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    #event-ended p {
+        margin: 0;
+
+        color: #aaa;
+        font-size: clamp(14px, 2vw, 21px);
+        line-height: 1.5;
+        max-width: 750px;
+    }
+
+    #event-status {
+        margin-top: 25px;
+
+        color: #666;
+        font-size: 12px;
+    }
+
+    /* =========================
+       DEBUG
+       ========================= */
 
     #debug-log {
         position: absolute;
@@ -55,6 +115,10 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         padding: 10px;
     }
 
+    /* =========================
+       MARCA NOVAPLAY
+       ========================= */
+
     .watermark {
         position: absolute;
         top: 20px;
@@ -66,19 +130,28 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         user-select: none;
     }
 
+    /* =========================
+       FULLSCREEN
+       ========================= */
+
     #fullscreen-btn {
         position: absolute;
         bottom: 20px;
         right: 20px;
         z-index: 2000;
+
         width: 50px;
         height: 45px;
+
         border: none;
         border-radius: 6px;
+
         background: rgba(0, 0, 0, 0.65);
         color: white;
+
         font-size: 27px;
         cursor: pointer;
+
         opacity: 0;
         transition: opacity 0.2s ease;
     }
@@ -116,6 +189,30 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
     <button id="fullscreen-btn" title="Pantalla completa">⛶</button>
 
+
+    <!-- =========================
+         EVENTO FINALIZADO
+         ========================= -->
+
+    <div id="event-ended">
+
+        <img
+            src="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplash.webp"
+            alt="NovaPlay">
+
+        <h1>ESTE EVENTO FINALIZÓ</h1>
+
+        <p>
+            El canal se reactivará automáticamente al iniciar
+            el próximo evento disponible.
+        </p>
+
+        <div id="event-status">
+            Esperando próxima transmisión...
+        </div>
+
+    </div>
+
 </div>
 
 <script>
@@ -126,221 +223,689 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     const videoContainer = document.getElementById('video-container');
 
+    const eventEnded = document.getElementById('event-ended');
+    const eventStatus = document.getElementById('event-status');
+
+    let hls = null;
+    let currentUrl = "";
+    let retryTimer = null;
+    let checkTimer = null;
+
+    /*
+     * Tiempo que debe pasar sin conseguir una transmisión
+     * antes de mostrar "EVENTO FINALIZADO".
+     */
+    const NO_STREAM_TIMEOUT = 12000;
+
+    /*
+     * Cada cuánto se consulta nuevamente novaplay.json.
+     *
+     * Esto permite detectar automáticamente el próximo evento.
+     */
+    const CHECK_NEXT_EVENT = 30000;
+
+
     function log(msg) {
+
         const div = document.createElement('div');
+
         div.textContent = `> ${msg}`;
+
         logger.appendChild(div);
+
         logger.scrollTop = logger.scrollHeight;
+
     }
 
-    /* Pantalla completa */
-    fullscreenBtn.addEventListener('click', async function() {
 
-        try {
+    /* =========================
+       PANTALLA EVENTO FINALIZADO
+       ========================= */
 
-            if (!document.fullscreenElement) {
+    function showEventEnded() {
 
-                await videoContainer.requestFullscreen();
-                fullscreenBtn.textContent = '⛶';
+        log('No se detectó una transmisión activa.');
 
-            } else {
+        video.pause();
 
-                await document.exitFullscreen();
-                fullscreenBtn.textContent = '⛶';
+        video.removeAttribute('src');
 
-            }
+        video.load();
 
-        } catch (error) {
+        eventEnded.style.display = 'flex';
 
-            log('Error pantalla completa: ' + error.message);
+        eventStatus.textContent =
+            'Esperando próxima transmisión...';
+
+    }
+
+
+    function hideEventEnded() {
+
+        eventEnded.style.display = 'none';
+
+    }
+
+
+    /* =========================
+       DESTRUIR HLS
+       ========================= */
+
+    function destroyPlayer() {
+
+        if (hls) {
+
+            try {
+                hls.destroy();
+            } catch (e) {}
+
+            hls = null;
 
         }
 
-    });
+        video.pause();
 
-    /* Actualizar botón cuando cambia fullscreen */
-    document.addEventListener('fullscreenchange', function() {
+        video.removeAttribute('src');
 
-        fullscreenBtn.textContent = '⛶';
+        video.load();
 
-    });
+    }
 
-    async function init() {
 
-        log('Obteniendo Datos desde NOVAPLAY');
+    /* =========================
+       FULLSCREEN
+       ========================= */
 
-        await new Promise(r => setTimeout(r, 800));
+    fullscreenBtn.addEventListener(
+        'click',
+        async function() {
 
-        try {
+            try {
 
-            log('Conectando con Base de Datos...');
+                if (!document.fullscreenElement) {
 
-            /*
-             * URL de novaplay.json codificada en Base64.
-             * Se reconstruye únicamente cuando se necesita.
-             */
-            const encodedUrl =
-                "aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg==";
+                    await videoContainer.requestFullscreen();
 
-            const jsonUrl = atob(encodedUrl);
+                    fullscreenBtn.textContent = '⛶';
 
-            const response = await fetch(
-                jsonUrl + "?t=" + Date.now()
-            );
+                } else {
 
-            const data = await response.json();
+                    await document.exitFullscreen();
 
-            log('Usuario DEMO - Sesión Autorizada');
-
-            await new Promise(r => setTimeout(r, 500));
-
-            let targetUrl = "";
-
-            for (const category of data) {
-
-                const channel = category.items.find(
-                    ch => ch.name === "NOVASPORTS"
-                );
-
-                if (channel) {
-
-                    targetUrl = channel.url;
-                    break;
+                    fullscreenBtn.textContent = '⛶';
 
                 }
 
+            } catch (error) {
+
+                log(
+                    'Error pantalla completa: ' +
+                    error.message
+                );
+
             }
 
-            if (!targetUrl) {
+        }
+    );
 
-                log('Error: Canal no encontrado.');
-                return;
+
+    document.addEventListener(
+        'fullscreenchange',
+        function() {
+
+            fullscreenBtn.textContent = '⛶';
+
+        }
+    );
+
+
+    /* =========================
+       OBTENER NOVAPLAY.JSON
+       ========================= */
+
+    async function getChannelUrl() {
+
+        const encodedUrl =
+            "aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg==";
+
+        const jsonUrl = atob(encodedUrl);
+
+        const response = await fetch(
+            jsonUrl + "?t=" + Date.now(),
+            {
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+
+            throw new Error(
+                'HTTP ' + response.status
+            );
+
+        }
+
+        const data = await response.json();
+
+
+        let targetUrl = "";
+
+
+        for (const category of data) {
+
+            if (!category.items) {
+                continue;
+            }
+
+            const channel = category.items.find(
+                ch => ch.name === "NOVASPORTS"
+            );
+
+            if (channel) {
+
+                targetUrl = channel.url;
+
+                break;
 
             }
 
-            log('Conexión Establecida. - CARGANDO...');
+        }
 
-            await new Promise(r => setTimeout(r, 300));
 
-            if (Hls.isSupported()) {
+        return targetUrl;
 
-                const hls = new Hls({
+    }
 
-                    maxBufferLength: 60,
-                    maxMaxBufferLength: 120,
-                    maxBufferSize: 60 * 1024 * 1024,
-                    lowLatencyMode: true,
-                    backStep: 0.5,
-                    startLevel: -1,
-                    manifestLoadingMaxRetry: 5,
-                    levelLoadingMaxRetry: 5
 
-                });
+    /* =========================
+       INICIAR TRANSMISIÓN
+       ========================= */
 
-                hls.loadSource(targetUrl);
-                hls.attachMedia(video);
+    function startStream(targetUrl) {
 
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        destroyPlayer();
+
+        hideEventEnded();
+
+        currentUrl = targetUrl;
+
+        log('Intentando conectar con transmisión...');
+
+
+        let streamDetected = false;
+
+        /*
+         * Si después de 12 segundos no se detectó
+         * una transmisión válida, mostramos el aviso.
+         */
+
+        const noStreamTimer = setTimeout(function() {
+
+            if (!streamDetected) {
+
+                log(
+                    'No se detectó transmisión después de ' +
+                    NO_STREAM_TIMEOUT +
+                    ' ms.'
+                );
+
+                showEventEnded();
+
+            }
+
+        }, NO_STREAM_TIMEOUT);
+
+
+        /* =========================
+           HLS.JS
+           ========================= */
+
+        if (Hls.isSupported()) {
+
+            hls = new Hls({
+
+                maxBufferLength: 60,
+
+                maxMaxBufferLength: 120,
+
+                maxBufferSize:
+                    60 * 1024 * 1024,
+
+                lowLatencyMode: true,
+
+                backStep: 0.5,
+
+                startLevel: -1,
+
+                manifestLoadingMaxRetry: 2,
+
+                levelLoadingMaxRetry: 2
+
+            });
+
+
+            hls.loadSource(targetUrl);
+
+            hls.attachMedia(video);
+
+
+            /*
+             * Manifest cargado correctamente.
+             */
+
+            hls.on(
+                Hls.Events.MANIFEST_PARSED,
+                function() {
+
+                    streamDetected = true;
+
+                    clearTimeout(noStreamTimer);
+
+                    log(
+                        'Transmisión detectada correctamente.'
+                    );
+
 
                     video.play()
-                        .then(() => {
+                        .then(function() {
 
-                            setTimeout(() => {
+                            setTimeout(function() {
 
-                                logger.style.display = 'none';
+                                logger.style.display =
+                                    'none';
 
                             }, 1000);
 
                         })
-                        .catch(e => {
+                        .catch(function(e) {
 
-                            log('Error Autoplay: ' + e.message);
+                            log(
+                                'Error Autoplay: ' +
+                                e.message
+                            );
 
                         });
 
-                });
+                }
+            );
 
-                hls.on(Hls.Events.ERROR, function(event, data) {
 
-                    if (data.fatal) {
+            /*
+             * Primer fragmento recibido.
+             *
+             * Esto confirma aún más que existe
+             * una transmisión real.
+             */
 
-                        switch (data.type) {
+            hls.on(
+                Hls.Events.FRAG_LOADED,
+                function() {
 
-                            case Hls.ErrorTypes.NETWORK_ERROR:
+                    streamDetected = true;
 
-                                log(
-                                    "Error de Conexión con enlace, reintentando..."
-                                );
+                    clearTimeout(noStreamTimer);
+
+                    hideEventEnded();
+
+                }
+            );
+
+
+            /*
+             * Errores HLS
+             */
+
+            hls.on(
+                Hls.Events.ERROR,
+                function(event, data) {
+
+                    if (!data.fatal) {
+                        return;
+                    }
+
+
+                    switch (data.type) {
+
+
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+
+                            log(
+                                'No se pudo conectar con la transmisión.'
+                            );
+
+                            /*
+                             * No mostramos inmediatamente
+                             * "evento finalizado".
+                             *
+                             * Esperamos al timeout.
+                             */
+
+                            if (!streamDetected) {
+
+                                setTimeout(function() {
+
+                                    if (hls) {
+
+                                        try {
+
+                                            hls.startLoad();
+
+                                        } catch (e) {}
+
+                                    }
+
+                                }, 3000);
+
+                            } else {
 
                                 hls.startLoad();
 
-                                break;
+                            }
 
-                            case Hls.ErrorTypes.MEDIA_ERROR:
+                            break;
 
-                                log(
-                                    "Error de medios, recuperando..."
-                                );
+
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+
+                            log(
+                                'Error de medios. Recuperando...'
+                            );
+
+                            try {
 
                                 hls.recoverMediaError();
 
-                                break;
-
-                            default:
-
-                                log("Fallo fatal.");
-
-                                hls.destroy();
-
-                                break;
-
-                        }
-
-                    }
-
-                });
-
-            } else if (
-                video.canPlayType(
-                    'application/vnd.apple.mpegurl'
-                )
-            ) {
-
-                video.src = targetUrl;
-
-                video.addEventListener(
-                    'loadedmetadata',
-                    () => {
-
-                        video.play()
-                            .then(() => {
-
-                                logger.style.display = 'none';
-
-                            })
-                            .catch(e => {
+                            } catch (e) {
 
                                 log(
-                                    'Error Autoplay: ' +
-                                    e.message
+                                    'No se pudo recuperar el medio.'
                                 );
 
-                            });
+                            }
+
+                            break;
+
+
+                        default:
+
+                            log(
+                                'Fallo fatal de reproducción.'
+                            );
+
+                            clearTimeout(
+                                noStreamTimer
+                            );
+
+                            showEventEnded();
+
+                            break;
 
                     }
-                );
 
-            }
+                }
+            );
 
-        } catch (error) {
 
-            log('FALLO: ' + error.message);
+        }
+
+        /* =========================
+           SAFARI / HLS NATIVO
+           ========================= */
+
+        else if (
+            video.canPlayType(
+                'application/vnd.apple.mpegurl'
+            )
+        ) {
+
+            video.src = targetUrl;
+
+
+            video.addEventListener(
+                'loadedmetadata',
+                function onMetadata() {
+
+                    streamDetected = true;
+
+                    clearTimeout(noStreamTimer);
+
+                    log(
+                        'Transmisión detectada correctamente.'
+                    );
+
+
+                    video.play()
+                        .then(function() {
+
+                            setTimeout(function() {
+
+                                logger.style.display =
+                                    'none';
+
+                            }, 1000);
+
+                        })
+                        .catch(function(e) {
+
+                            log(
+                                'Error Autoplay: ' +
+                                e.message
+                            );
+
+                        });
+
+                },
+                {
+                    once: true
+                }
+            );
+
+
+            video.addEventListener(
+                'error',
+                function() {
+
+                    if (!streamDetected) {
+
+                        clearTimeout(
+                            noStreamTimer
+                        );
+
+                        showEventEnded();
+
+                    }
+
+                }
+            );
+
+        }
+
+        else {
+
+            clearTimeout(noStreamTimer);
+
+            log(
+                'Este navegador no soporta HLS.'
+            );
+
+            showEventEnded();
 
         }
 
     }
 
+
+    /* =========================
+       BUSCAR EVENTO
+       ========================= */
+
+    async function checkForNextEvent() {
+
+        try {
+
+            const newUrl =
+                await getChannelUrl();
+
+
+            if (!newUrl) {
+
+                log(
+                    'NOVASPORTS no tiene enlace disponible.'
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * Si aparece una URL diferente,
+             * significa que probablemente comenzó
+             * el siguiente evento.
+             */
+
+            if (newUrl !== currentUrl) {
+
+                log(
+                    'Nuevo evento detectado. Reactivando canal...'
+                );
+
+                logger.style.display = 'block';
+
+                startStream(newUrl);
+
+                return;
+
+            }
+
+
+            /*
+             * Si estamos en pantalla de evento finalizado,
+             * volvemos a intentar la misma URL.
+             *
+             * Esto sirve cuando el servidor mantiene
+             * la misma URL pero vuelve a emitir.
+             */
+
+            if (
+                eventEnded.style.display === 'flex'
+            ) {
+
+                log(
+                    'Verificando nuevamente la transmisión...'
+                );
+
+                startStream(newUrl);
+
+            }
+
+        } catch (error) {
+
+            log(
+                'Error verificando próximo evento: ' +
+                error.message
+            );
+
+        }
+
+    }
+
+
+    /* =========================
+       INICIALIZACIÓN
+       ========================= */
+
+    async function init() {
+
+        log(
+            'Obteniendo Datos desde NOVAPLAY'
+        );
+
+        await new Promise(
+            r => setTimeout(r, 800)
+        );
+
+
+        try {
+
+            log(
+                'Conectando con Base de Datos...'
+            );
+
+
+            const targetUrl =
+                await getChannelUrl();
+
+
+            log(
+                'Usuario DEMO - Sesión Autorizada'
+            );
+
+
+            await new Promise(
+                r => setTimeout(r, 500)
+            );
+
+
+            if (!targetUrl) {
+
+                log(
+                    'NOVASPORTS no tiene transmisión disponible.'
+                );
+
+                showEventEnded();
+
+            } else {
+
+                log(
+                    'Conexión Establecida. - CARGANDO...'
+                );
+
+                await new Promise(
+                    r => setTimeout(r, 300)
+                );
+
+                startStream(targetUrl);
+
+            }
+
+
+            /*
+             * Comprobar automáticamente el próximo evento.
+             */
+
+            checkTimer = setInterval(
+                checkForNextEvent,
+                CHECK_NEXT_EVENT
+            );
+
+
+        } catch (error) {
+
+            log(
+                'FALLO: ' +
+                error.message
+            );
+
+            showEventEnded();
+
+            /*
+             * Incluso si la primera consulta falla,
+             * seguimos intentando.
+             */
+
+            checkTimer = setInterval(
+                checkForNextEvent,
+                CHECK_NEXT_EVENT
+            );
+
+        }
+
+    }
+
+
     init();
+
 
 })();
 </script>
