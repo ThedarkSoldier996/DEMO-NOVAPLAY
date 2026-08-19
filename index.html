@@ -12,6 +12,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
 
 <style>
+
     html, body {
         margin: 0;
         padding: 0;
@@ -57,6 +58,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
         background: #000;
         text-align: center;
+
         padding: 20px;
         box-sizing: border-box;
     }
@@ -64,6 +66,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
     #event-ended img {
         width: 190px;
         max-width: 45vw;
+
         margin-bottom: 35px;
 
         user-select: none;
@@ -74,8 +77,11 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         margin: 0 0 15px 0;
 
         color: #fff;
+
         font-size: clamp(25px, 4vw, 48px);
+
         font-weight: 800;
+
         letter-spacing: 1px;
     }
 
@@ -83,8 +89,11 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         margin: 0;
 
         color: #aaa;
+
         font-size: clamp(14px, 2vw, 21px);
+
         line-height: 1.5;
+
         max-width: 750px;
     }
 
@@ -92,6 +101,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         margin-top: 25px;
 
         color: #666;
+
         font-size: 12px;
     }
 
@@ -101,17 +111,28 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
     #debug-log {
         position: absolute;
+
         top: 0;
         left: 0;
+
         background: rgba(0,0,0,0.8);
+
         color: #0f0;
+
         font-family: monospace;
+
         font-size: 10px;
+
         z-index: 9999;
+
         max-height: 40%;
+
         overflow-y: auto;
+
         width: 300px;
+
         pointer-events: none;
+
         padding: 10px;
     }
 
@@ -121,12 +142,18 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
     .watermark {
         position: absolute;
+
         top: 20px;
         right: 20px;
+
         width: 120px;
+
         opacity: 0.6;
+
         pointer-events: none;
+
         z-index: 1000;
+
         user-select: none;
     }
 
@@ -136,23 +163,29 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
     #fullscreen-btn {
         position: absolute;
+
         bottom: 20px;
         right: 20px;
+
         z-index: 2000;
 
         width: 50px;
         height: 45px;
 
         border: none;
+
         border-radius: 6px;
 
         background: rgba(0, 0, 0, 0.65);
+
         color: white;
 
         font-size: 27px;
+
         cursor: pointer;
 
         opacity: 0;
+
         transition: opacity 0.2s ease;
     }
 
@@ -163,6 +196,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
     #fullscreen-btn:hover {
         background: rgba(0, 0, 0, 0.85);
     }
+
 </style>
 </head>
 
@@ -187,7 +221,11 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         class="watermark"
         alt="NovaPlay">
 
-    <button id="fullscreen-btn" title="Pantalla completa">⛶</button>
+    <button
+        id="fullscreen-btn"
+        title="Pantalla completa">
+        ⛶
+    </button>
 
 
     <!-- =========================
@@ -215,70 +253,104 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 </div>
 
+
 <script>
+
 (function() {
 
-    const logger = document.getElementById('debug-log');
-    const video = document.getElementById('video');
-    const fullscreenBtn = document.getElementById('fullscreen-btn');
-    const videoContainer = document.getElementById('video-container');
+    const logger =
+        document.getElementById('debug-log');
 
-    const eventEnded = document.getElementById('event-ended');
-    const eventStatus = document.getElementById('event-status');
+    const video =
+        document.getElementById('video');
 
+    const fullscreenBtn =
+        document.getElementById('fullscreen-btn');
+
+    const videoContainer =
+        document.getElementById('video-container');
+
+    const eventEnded =
+        document.getElementById('event-ended');
+
+    const eventStatus =
+        document.getElementById('event-status');
+
+
+    /*
+     * Instancia HLS actual.
+     */
     let hls = null;
+
+
+    /*
+     * URL que actualmente estamos utilizando.
+     */
     let currentUrl = "";
-    let retryTimer = null;
+
+
+    /*
+     * URL que ya fue detectada como
+     * finalizada / Not Found.
+     *
+     * Esta URL NO volverá a reproducirse
+     * mientras siga siendo la misma.
+     */
+    let endedUrl = "";
+
+
+    /*
+     * Comprobación del JSON.
+     */
     let checkTimer = null;
 
-    /*
-     * Tiempo que debe pasar sin conseguir una transmisión
-     * antes de mostrar "EVENTO FINALIZADO".
-     */
-    const NO_STREAM_TIMEOUT = 12000;
 
     /*
-     * Cada cuánto se consulta nuevamente novaplay.json.
-     *
-     * Esto permite detectar automáticamente el próximo evento.
+     * Cada cuánto se consulta novaplay.json.
      */
     const CHECK_NEXT_EVENT = 30000;
 
 
+    /* =========================
+       LOG
+       ========================= */
+
     function log(msg) {
 
-        const div = document.createElement('div');
+        const div =
+            document.createElement('div');
 
         div.textContent = `> ${msg}`;
 
         logger.appendChild(div);
 
-        logger.scrollTop = logger.scrollHeight;
+        logger.scrollTop =
+            logger.scrollHeight;
 
     }
 
 
     /* =========================
-       PANTALLA EVENTO FINALIZADO
+       MOSTRAR EVENTO FINALIZADO
        ========================= */
 
     function showEventEnded() {
 
-        log('No se detectó una transmisión activa.');
-
-        video.pause();
-
-        video.removeAttribute('src');
-
-        video.load();
+        log(
+            'EVENTO FINALIZADO - No hay M3U8 disponible.'
+        );
 
         eventEnded.style.display = 'flex';
 
         eventStatus.textContent =
-            'Esperando próxima transmisión...';
+            'Esperando próximo evento...';
 
     }
 
+
+    /* =========================
+       OCULTAR EVENTO FINALIZADO
+       ========================= */
 
     function hideEventEnded() {
 
@@ -296,18 +368,24 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         if (hls) {
 
             try {
+
                 hls.destroy();
+
             } catch (e) {}
 
             hls = null;
 
         }
 
-        video.pause();
+        try {
 
-        video.removeAttribute('src');
+            video.pause();
 
-        video.load();
+            video.removeAttribute('src');
+
+            video.load();
+
+        } catch (e) {}
 
     }
 
@@ -326,13 +404,9 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
                     await videoContainer.requestFullscreen();
 
-                    fullscreenBtn.textContent = '⛶';
-
                 } else {
 
                     await document.exitFullscreen();
-
-                    fullscreenBtn.textContent = '⛶';
 
                 }
 
@@ -368,7 +442,9 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         const encodedUrl =
             "aHR0cHM6Ly9tcmdobm5ndXBvbHNnYXRjbWV2dy5zdXBhYmFzZS5jby9zdG9yYWdlL3YxL29iamVjdC9wdWJsaWMvTm92YXBsYXkvbm92YXBsYXkuanNvbg==";
 
-        const jsonUrl = atob(encodedUrl);
+        const jsonUrl =
+            atob(encodedUrl);
+
 
         const response = await fetch(
             jsonUrl + "?t=" + Date.now(),
@@ -376,6 +452,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 cache: "no-store"
             }
         );
+
 
         if (!response.ok) {
 
@@ -385,7 +462,9 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
         }
 
-        const data = await response.json();
+
+        const data =
+            await response.json();
 
 
         let targetUrl = "";
@@ -397,13 +476,17 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 continue;
             }
 
-            const channel = category.items.find(
-                ch => ch.name === "NOVASPORTS"
-            );
+
+            const channel =
+                category.items.find(
+                    ch => ch.name === "NOVASPORTS"
+                );
+
 
             if (channel) {
 
-                targetUrl = channel.url;
+                targetUrl =
+                    channel.url || "";
 
                 break;
 
@@ -418,88 +501,353 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 
     /* =========================
-       INICIAR TRANSMISIÓN
+       VALIDAR M3U8
        ========================= */
 
-    function startStream(targetUrl) {
+    async function validateM3U8(url) {
 
-        destroyPlayer();
-
-        hideEventEnded();
-
-        currentUrl = targetUrl;
-
-        log('Intentando conectar con transmisión...');
+        log(
+            'Verificando respuesta del M3U8...'
+        );
 
 
-        let streamDetected = false;
+        try {
 
-        /*
-         * Si después de 12 segundos no se detectó
-         * una transmisión válida, mostramos el aviso.
-         */
+            const separator =
+                url.includes('?')
+                    ? '&'
+                    : '?';
 
-        const noStreamTimer = setTimeout(function() {
 
-            if (!streamDetected) {
+            const checkUrl =
+                url +
+                separator +
+                'check=' +
+                Date.now();
 
-                log(
-                    'No se detectó transmisión después de ' +
-                    NO_STREAM_TIMEOUT +
-                    ' ms.'
+
+            const response =
+                await fetch(
+                    checkUrl,
+                    {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }
                 );
-
-                showEventEnded();
-
-            }
-
-        }, NO_STREAM_TIMEOUT);
-
-
-        /* =========================
-           HLS.JS
-           ========================= */
-
-        if (Hls.isSupported()) {
-
-            hls = new Hls({
-
-                maxBufferLength: 60,
-
-                maxMaxBufferLength: 120,
-
-                maxBufferSize:
-                    60 * 1024 * 1024,
-
-                lowLatencyMode: true,
-
-                backStep: 0.5,
-
-                startLevel: -1,
-
-                manifestLoadingMaxRetry: 2,
-
-                levelLoadingMaxRetry: 2
-
-            });
-
-
-            hls.loadSource(targetUrl);
-
-            hls.attachMedia(video);
 
 
             /*
-             * Manifest cargado correctamente.
+             * Leemos la respuesta completa.
+             */
+            const text =
+                await response.text();
+
+
+            const content =
+                text.trim();
+
+
+            const lower =
+                content.toLowerCase();
+
+
+            log(
+                'Respuesta recibida: ' +
+                content.substring(0, 100)
+            );
+
+
+            /*
+             * ====================================
+             * CASO 1:
+             * ES UN M3U8 VÁLIDO
+             * ====================================
+             */
+
+            if (
+                lower.includes('#extm3u')
+            ) {
+
+                log(
+                    'M3U8 válido detectado.'
+                );
+
+                return true;
+
+            }
+
+
+            /*
+             * ====================================
+             * CASO 2:
+             * RESPONDE HTML
+             * ====================================
+             */
+
+            const isHTML =
+                lower.includes('<html') ||
+                lower.includes('<!doctype') ||
+                lower.includes('<body') ||
+                lower.includes('<head');
+
+
+            /*
+             * ====================================
+             * CASO 3:
+             * CONTIENE NOT FOUND
+             * ====================================
+             */
+
+            const isNotFound =
+                lower.includes('not found') ||
+                lower.includes('404 not found') ||
+                lower.includes('page not found') ||
+                lower.includes('file not found') ||
+                lower.includes('stream not found') ||
+                lower.includes('video not found') ||
+                lower.includes('resource not found');
+
+
+            if (
+                isHTML ||
+                isNotFound
+            ) {
+
+                log(
+                    'La URL respondió HTML / NOT FOUND.'
+                );
+
+                return false;
+
+            }
+
+
+            /*
+             * ====================================
+             * CUALQUIER RESPUESTA QUE NO CONTENGA
+             * #EXTM3U NO SE CONSIDERA M3U8
+             * ====================================
+             */
+
+            log(
+                'La respuesta no contiene #EXTM3U.'
+            );
+
+            return false;
+
+
+        } catch (error) {
+
+            /*
+             * Si no podemos consultar la URL,
+             * NO marcamos automáticamente la URL
+             * como finalizada.
+             *
+             * Esto evita confundir un problema
+             * temporal de conexión con un evento
+             * terminado.
+             */
+
+            log(
+                'No se pudo verificar M3U8: ' +
+                error.message
+            );
+
+            return null;
+
+        }
+
+    }
+
+
+    /* =========================
+       INICIAR TRANSMISIÓN
+       ========================= */
+
+    async function startStream(targetUrl) {
+
+        /*
+         * Evitar volver a intentar una URL
+         * que ya fue marcada como finalizada.
+         */
+
+        if (
+            endedUrl &&
+            targetUrl === endedUrl
+        ) {
+
+            log(
+                'Esta URL ya fue marcada como finalizada.'
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Si ya estamos reproduciendo
+         * exactamente la misma URL,
+         * no hacemos nada.
+         */
+
+        if (
+            currentUrl === targetUrl &&
+            hls
+        ) {
+
+            return;
+
+        }
+
+
+        destroyPlayer();
+
+
+        currentUrl =
+            targetUrl;
+
+
+        hideEventEnded();
+
+
+        logger.style.display =
+            'block';
+
+
+        log(
+            'Nueva transmisión detectada.'
+        );
+
+
+        /*
+         * ====================================
+         * VALIDAR RESPUESTA DEL M3U8
+         * ====================================
+         */
+
+        const valid =
+            await validateM3U8(targetUrl);
+
+
+        /*
+         * Error de conexión durante
+         * la comprobación.
+         *
+         * No marcamos como finalizado.
+         */
+
+        if (valid === null) {
+
+            log(
+                'No se pudo verificar el M3U8.'
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * ====================================
+         * M3U8 NO VÁLIDO
+         * ====================================
+         */
+
+        if (!valid) {
+
+            log(
+                'La transmisión no está disponible.'
+            );
+
+
+            /*
+             * Guardamos esta URL.
+             *
+             * Mientras novaplay.json siga entregando
+             * esta misma URL NO se volverá a intentar.
+             */
+
+            endedUrl =
+                targetUrl;
+
+
+            currentUrl =
+                targetUrl;
+
+
+            destroyPlayer();
+
+
+            showEventEnded();
+
+
+            return;
+
+        }
+
+
+        /*
+         * ====================================
+         * M3U8 VÁLIDO
+         * ====================================
+         */
+
+        log(
+            'M3U8 válido. Iniciando reproductor...'
+        );
+
+
+        if (Hls.isSupported()) {
+
+
+            hls =
+                new Hls({
+
+                    maxBufferLength: 60,
+
+                    maxMaxBufferLength: 120,
+
+                    maxBufferSize:
+                        60 * 1024 * 1024,
+
+                    lowLatencyMode: true,
+
+                    backStep: 0.5,
+
+                    startLevel: -1,
+
+                    /*
+                     * No hacer varios reintentos
+                     * automáticos del manifest.
+                     */
+
+                    manifestLoadingMaxRetry: 0,
+
+                    levelLoadingMaxRetry: 0
+
+                });
+
+
+            hls.loadSource(
+                targetUrl
+            );
+
+
+            hls.attachMedia(
+                video
+            );
+
+
+            /*
+             * ====================================
+             * MANIFEST CARGADO
+             * ====================================
              */
 
             hls.on(
                 Hls.Events.MANIFEST_PARSED,
                 function() {
-
-                    streamDetected = true;
-
-                    clearTimeout(noStreamTimer);
 
                     log(
                         'Transmisión detectada correctamente.'
@@ -509,41 +857,41 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                     video.play()
                         .then(function() {
 
-                            setTimeout(function() {
+                            setTimeout(
+                                function() {
 
-                                logger.style.display =
-                                    'none';
+                                    logger.style.display =
+                                        'none';
 
-                            }, 1000);
-
-                        })
-                        .catch(function(e) {
-
-                            log(
-                                'Error Autoplay: ' +
-                                e.message
+                                },
+                                1000
                             );
 
-                        });
+                        })
+                        .catch(
+                            function(e) {
+
+                                log(
+                                    'Error Autoplay: ' +
+                                    e.message
+                                );
+
+                            }
+                        );
 
                 }
             );
 
 
             /*
-             * Primer fragmento recibido.
-             *
-             * Esto confirma aún más que existe
-             * una transmisión real.
+             * ====================================
+             * FRAGMENTO RECIBIDO
+             * ====================================
              */
 
             hls.on(
                 Hls.Events.FRAG_LOADED,
                 function() {
-
-                    streamDetected = true;
-
-                    clearTimeout(noStreamTimer);
 
                     hideEventEnded();
 
@@ -552,7 +900,9 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 
             /*
-             * Errores HLS
+             * ====================================
+             * ERRORES HLS
+             * ====================================
              */
 
             hls.on(
@@ -560,87 +910,45 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 function(event, data) {
 
                     if (!data.fatal) {
+
                         return;
-                    }
-
-
-                    switch (data.type) {
-
-
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-
-                            log(
-                                'No se pudo conectar con la transmisión.'
-                            );
-
-                            /*
-                             * No mostramos inmediatamente
-                             * "evento finalizado".
-                             *
-                             * Esperamos al timeout.
-                             */
-
-                            if (!streamDetected) {
-
-                                setTimeout(function() {
-
-                                    if (hls) {
-
-                                        try {
-
-                                            hls.startLoad();
-
-                                        } catch (e) {}
-
-                                    }
-
-                                }, 3000);
-
-                            } else {
-
-                                hls.startLoad();
-
-                            }
-
-                            break;
-
-
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-
-                            log(
-                                'Error de medios. Recuperando...'
-                            );
-
-                            try {
-
-                                hls.recoverMediaError();
-
-                            } catch (e) {
-
-                                log(
-                                    'No se pudo recuperar el medio.'
-                                );
-
-                            }
-
-                            break;
-
-
-                        default:
-
-                            log(
-                                'Fallo fatal de reproducción.'
-                            );
-
-                            clearTimeout(
-                                noStreamTimer
-                            );
-
-                            showEventEnded();
-
-                            break;
 
                     }
+
+
+                    log(
+                        'Error HLS: ' +
+                        (
+                            data.details ||
+                            data.type ||
+                            'desconocido'
+                        )
+                    );
+
+
+                    /*
+                     * IMPORTANTE:
+                     *
+                     * NO hacemos:
+                     *
+                     * hls.startLoad()
+                     *
+                     * porque no queremos reintentar
+                     * la misma transmisión.
+                     */
+
+
+                    destroyPlayer();
+
+
+                    /*
+                     * Si ya teníamos un M3U8 válido,
+                     * no necesariamente significa
+                     * que terminó el evento.
+                     *
+                     * Esperamos a que cambie la URL
+                     * en novaplay.json.
+                     */
 
                 }
             );
@@ -648,8 +956,9 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
         }
 
+
         /* =========================
-           SAFARI / HLS NATIVO
+           HLS NATIVO
            ========================= */
 
         else if (
@@ -658,16 +967,14 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
             )
         ) {
 
-            video.src = targetUrl;
+
+            video.src =
+                targetUrl;
 
 
             video.addEventListener(
                 'loadedmetadata',
                 function onMetadata() {
-
-                    streamDetected = true;
-
-                    clearTimeout(noStreamTimer);
 
                     log(
                         'Transmisión detectada correctamente.'
@@ -675,24 +982,31 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 
                     video.play()
-                        .then(function() {
+                        .then(
+                            function() {
 
-                            setTimeout(function() {
+                                setTimeout(
+                                    function() {
 
-                                logger.style.display =
-                                    'none';
+                                        logger.style.display =
+                                            'none';
 
-                            }, 1000);
+                                    },
+                                    1000
+                                );
 
-                        })
-                        .catch(function(e) {
+                            }
+                        )
+                        .catch(
+                            function(e) {
 
-                            log(
-                                'Error Autoplay: ' +
-                                e.message
-                            );
+                                log(
+                                    'Error Autoplay: ' +
+                                    e.message
+                                );
 
-                        });
+                            }
+                        );
 
                 },
                 {
@@ -705,30 +1019,23 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 'error',
                 function() {
 
-                    if (!streamDetected) {
+                    log(
+                        'Error en reproducción HLS nativa.'
+                    );
 
-                        clearTimeout(
-                            noStreamTimer
-                        );
-
-                        showEventEnded();
-
-                    }
+                    destroyPlayer();
 
                 }
             );
 
         }
 
-        else {
 
-            clearTimeout(noStreamTimer);
+        else {
 
             log(
                 'Este navegador no soporta HLS.'
             );
-
-            showEventEnded();
 
         }
 
@@ -736,7 +1043,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 
     /* =========================
-       BUSCAR EVENTO
+       COMPROBAR PRÓXIMO EVENTO
        ========================= */
 
     async function checkForNextEvent() {
@@ -747,10 +1054,14 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 await getChannelUrl();
 
 
+            /*
+             * No hay URL.
+             */
+
             if (!newUrl) {
 
                 log(
-                    'NOVASPORTS no tiene enlace disponible.'
+                    'NOVASPORTS sin URL disponible.'
                 );
 
                 return;
@@ -759,45 +1070,61 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
 
             /*
-             * Si aparece una URL diferente,
-             * significa que probablemente comenzó
-             * el siguiente evento.
-             */
-
-            if (newUrl !== currentUrl) {
-
-                log(
-                    'Nuevo evento detectado. Reactivando canal...'
-                );
-
-                logger.style.display = 'block';
-
-                startStream(newUrl);
-
-                return;
-
-            }
-
-
-            /*
-             * Si estamos en pantalla de evento finalizado,
-             * volvemos a intentar la misma URL.
+             * ====================================
+             * MISMA URL
+             * ====================================
              *
-             * Esto sirve cuando el servidor mantiene
-             * la misma URL pero vuelve a emitir.
+             * NO HACER NADA.
+             *
+             * Esto es lo importante:
+             * si la URL anterior respondió
+             * "Not Found", no volvemos a cargarla.
              */
 
             if (
-                eventEnded.style.display === 'flex'
+                newUrl === currentUrl
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * ====================================
+             * URL NUEVA
+             * ====================================
+             */
+
+            if (
+                newUrl !== currentUrl
             ) {
 
                 log(
-                    'Verificando nuevamente la transmisión...'
+                    'Nueva URL de evento detectada.'
                 );
 
-                startStream(newUrl);
+
+                /*
+                 * La URL cambió.
+                 *
+                 * Permitimos nuevamente
+                 * la reproducción.
+                 */
+
+                endedUrl = "";
+
+
+                logger.style.display =
+                    'block';
+
+
+                await startStream(
+                    newUrl
+                );
 
             }
+
 
         } catch (error) {
 
@@ -820,6 +1147,7 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
         log(
             'Obteniendo Datos desde NOVAPLAY'
         );
+
 
         await new Promise(
             r => setTimeout(r, 800)
@@ -850,34 +1178,43 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
             if (!targetUrl) {
 
                 log(
-                    'NOVASPORTS no tiene transmisión disponible.'
+                    'NOVASPORTS no tiene URL disponible.'
                 );
 
+
                 showEventEnded();
+
 
             } else {
 
                 log(
-                    'Conexión Establecida. - CARGANDO...'
+                    'URL encontrada. Verificando transmisión...'
                 );
 
-                await new Promise(
-                    r => setTimeout(r, 300)
-                );
 
-                startStream(targetUrl);
+                await startStream(
+                    targetUrl
+                );
 
             }
 
 
             /*
-             * Comprobar automáticamente el próximo evento.
+             * ====================================
+             * MONITOR DE PRÓXIMO EVENTO
+             * ====================================
+             *
+             * Solo consulta novaplay.json.
+             *
+             * NO vuelve a consultar el M3U8
+             * de la misma URL.
              */
 
-            checkTimer = setInterval(
-                checkForNextEvent,
-                CHECK_NEXT_EVENT
-            );
+            checkTimer =
+                setInterval(
+                    checkForNextEvent,
+                    CHECK_NEXT_EVENT
+                );
 
 
         } catch (error) {
@@ -887,17 +1224,21 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
                 error.message
             );
 
+
             showEventEnded();
 
+
             /*
-             * Incluso si la primera consulta falla,
-             * seguimos intentando.
+             * Seguimos consultando únicamente
+             * novaplay.json para detectar
+             * un nuevo evento.
              */
 
-            checkTimer = setInterval(
-                checkForNextEvent,
-                CHECK_NEXT_EVENT
-            );
+            checkTimer =
+                setInterval(
+                    checkForNextEvent,
+                    CHECK_NEXT_EVENT
+                );
 
         }
 
@@ -906,8 +1247,8 @@ href="https://raw.githubusercontent.com/ThedarkSoldier996/novaimg/main/novasplas
 
     init();
 
-
 })();
+
 </script>
 
 </body>
